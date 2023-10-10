@@ -9,7 +9,7 @@ As a first step, we use it to automatically optimize the way a NN is mapped onto
 First run
 =========
 
-The NN we are going to use for this first run is AlexNet. We provide an `onnx <https://onnx.ai/>`_ model of this network in ``zigzag/inputs/examples/workload/alexnet.onnx``. The model has been shape inferred, which means that besied the input and output tensor shapes, all intermediate tensor shapes have been inferred, which is information required by ZigZag. 
+The NN we are going to use for this first run is AlexNet. We provide an `onnx <https://onnx.ai/>`_ model of this network in ``zigzag/inputs/examples/workload/alexnet.onnx``. The model has been shape inferred, which means that beside the input and output tensor shapes, all intermediate tensor shapes have been inferred, which is information required by ZigZag. 
 
 .. warning::
     ZigZag requires an inferred onnx model, as it needs to know the shapes of all intermediate tensors to correctly infer the layer shapes. You can find more information on how to infer an onnx model `here <https://github.com/onnx/onnx/blob/main/docs/PythonAPIOverview.md#running-shape-inference-on-an-onnx-model>`_.
@@ -29,7 +29,7 @@ The following command starts the execution using the provided inputs:
 
 .. code:: sh
 
-    python main_onnx.py --model zigzag/inputs/examples/workload/alexnet.onnx --accelerator zigzag.inputs.examples.hardware.TPU_like --mapping zigzag.inputs.examples.mapping.alexnet_on_tpu_like
+    python main_onnx.py --model zigzag/inputs/examples/workload/alexnet.onnx --accelerator zigzag.inputs.examples.hardware.TPU_like --mapping zigzag.inputs.examples.mapping.tpu_like
 .. note::
 
     Note the difference in input path construction between the onnx model and the accelerator and mapping. This is because the accelerator and mapping objects are defined in their respective files and imported as python modules.
@@ -40,17 +40,17 @@ The following command starts the execution using the provided inputs:
 
 Other ZigZag runs examples:
 
-- ZigZag can also run with user-defined workload:
+- ZigZag can also run with user-defined workload (see section manual layer definition section in :doc:`workload`):
 
 .. code:: sh
 
     python main.py --model zigzag.inputs.examples.workload.resnet18 --accelerator zigzag.inputs.examples.hardware.TPU_like --mapping zigzag.inputs.examples.mapping.tpu_like
 
-- ZigZag can also run with SALSA temporal mapping search engine:
+- ZigZag can also run with `SALSA temporal mapping search engine <https://arxiv.org/pdf/2304.12931>`_ which utilizes a different scheduler than the `LOMA scheduler <https://ieeexplore.ieee.org/document/9458493>`_:
 
 .. code:: sh
 
-    python main_onnx_salsa.py --model zigzag/inputs/examples/workload/alexnet.onnx --accelerator zigzag.inputs.examples.hardware.TPU_like --mapping zigzag.inputs.examples.mapping.alexnet_on_tpu_like
+    python main_onnx_salsa.py --model zigzag/inputs/examples/workload/alexnet.onnx --accelerator zigzag.inputs.examples.hardware.TPU_like --mapping zigzag.inputs.examples.mapping.tpu_like
 
 Analyzing results
 =================

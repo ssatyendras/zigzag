@@ -1,47 +1,60 @@
 Hardware Architecture
 =====================
 
-In this section we introduce the general concept of how HW accelerators are modelled within ZigZag and the different well-known accelerators we provide as examples. We start from the smallest building block defined in ZigZag and work our way up towards an accelerator.
+In this section, we introduce the general concept of how HW accelerators are modeled within ZigZag and the different well-known accelerators we provide as examples. We start from the smallest building block defined in ZigZag and work our way up towards an accelerator.
 
 Operational Unit
 ----------------
 
-Accelerating inference of a NN requires execution of multiplications and summations (accumulations) across multiple intermediate data (activations) using trained parameters (weights). The operational unit, typically a Multiplier, executes the multiplication of two data elements, typically an activation and a weight. 
+Accelerating inference of a NN requires the execution of multiplications and summations (accumulations) across multiple intermediate data (activations) using trained parameters (weights). The operational unit, typically a Multiplier, executes the multiplication of two data elements, typically an activation and a weight. 
 
-The operational unit object has following attributes:
+.. image:: images/hardware-architecture/operational-unit.jpg
+  :width: 400
 
-* **input_precision**: List of input operand (data) precision in number of bits for each input operand (typically 2 for Multiplier).
+The operational unit object has the following attributes:
+
+* **input_precision**: List of input operand (data) precision in the number of bits for each input operand (typically there are two input operands for a Multiplier).
 * **output_precision**: The bit precision of the operation's output.
-* **energy_cost**: Energy of executing a single multiplication.
-* **area**: The HW area overhead of a single multiplier.
+* **energy_cost**: Energy of executing a single operation (e.g., a multiplication).
+* **area**: The HW area overhead of a single operational unit (e.g., a multiplier).
 
 Operational Array
 -----------------
 
-Inferencing a NN typically requires millions of operations, and an accelerator typically includes an array of operational units that can execute these operations. This can speed significantly up the computations, as well as increase energy efficiency which is covered later.
+Inferencing a NN typically requires millions of operations, and an accelerator typically includes an array of operational units that can execute these operations in parallel. This can significantly speed up the computations, as well as increase energy efficiency which is covered later.
 
-The array has multiple dimensions, each with a size. The importance of these dimensions is explained in the introduction of the memory hierarchy.
+The array can have one or multiple dimensions, each with a size. The importance of these dimensions is explained in the introduction of the memory hierarchy.
 
-The operational array object has:
+.. image:: images/hardware-architecture/operational-array.jpg
+  :width: 400
+
+The operational array object has the following attributes:
 
 * **operational_unit**: The operational unit from which the array is built.
-* **dimensions**: The dimensions of the array. This should be defined as a dict, with the keys being the identifier of each dimension of the array (typically 'D1', 'D2, ...) and the values being the size of this dimension (i.e. the size of the array along that dimension).
+* **dimensions**: The dimensions of the array. This should be defined as a dict, with the keys being the identifier of each dimension of the array (typically 'D1', 'D2', ...) and the values being the size of this dimension (i.e. the size of the array along that dimension).
 
 
 Memory Instance
 ---------------
 
-In order to store the different activations and weights used for the computations in the operational array, different memory instances are attached in a hierarchical fashion. The instances define how big each memory is in terms of capacity and area overhead, what the cost of writing and reading from these memories is, what it's bandwidth is, and how many read/write/read-write ports it includes.
+In order to store the different activations and weights used for the computations in the operational array, different memory instances are attached in a hierarchical fashion. The instances define how big each memory is in terms of capacity and area, what the cost of writing and reading from these memories is, what its bandwidth is, and how many read/write/read-write ports it includes.
 
-The memory instance object has:
+.. image:: images/hardware-architecture/memory-instance.jpg
+  :width: 400
+
+The memory instance object has the following attributes:
 
 * **name**: A name for the instance
 * **size**: The memory size in bits.
-* **r_bw/w_bw**: A read and write bandwidth in number of bits per cycle.
-* **r_cost/w_cost**: A read and write energy cost.
+* **r_bw/w_bw**: A read or write bandwidth in the number of bits per cycle.
+* **r_cost/w_cost**: A read or write energy cost.
 * **area**: Area overhead of the instance.
 * **r_port/w_port/rw_port**: The number of read/write/read-write ports the instance has available.
-* **latency**: The latency of an access in number of cycles.
+* **latency**: The latency of memory access in the number of cycles, i.e., after requiring read/write a memory address, how many cycles the memory takes to provide/receive this corresponding data. (For now, this attribute is not actively used. We assume that it is 1 to model the data prefetching behavior thanks to the deterministic dataflow.)
+
+(optional)
+
+* **min_r_granularity/min_w_granularity**: The minimal memory read/write granularity (in bit) the memory supports. This attribute is used to better model the memory that supports half-word access or quarter-word access patterns. For example, if a memory's read bandwidth (wordlength) is 256 bit/cycle, its read energy (r_cost) is 100, and its min_r_granularity is 128 bits (i.e., assume this memory allow half-word read), read 128 bits from it (we approximatlly assume that) will only take 50 energy. While if min_r_granularity is not defined or is defined as 256 bits, read 128 bits from it will take 100 energy.
 
 Memory Hierarchy
 ----------------
@@ -56,6 +69,9 @@ Similarly to how the operational unit can be unrolled (forming an operational ar
 Lastly, the different read/write/read-write ports a memory instance has, are assigned to the different data movevements possible in the hierarchy. There are four types of data movements in a hierarchy: from high (*fh*), to high (*th*), from low (*fl*), to low (*tl*). At the time of writing, these can be manually linked to one of the read/write/read-write ports through the following syntax: `{port_type}_port_{port_number}`, *port_type* being *r*, *w* or *rw* and *port_number* equal to the port number, starting from 1, which allows to allocate multiple ports of the same type. Alternatively, these are automatically generated as a default if not probided to the `add_memory()` call.
 
 Internally, the MemoryHierarchy object extends the `NetworkX DiGraph <https://networkx.org/documentation/stable/reference/classes/digraph.html>`_ object, so its methods are available. 
+
+.. image:: images/hardware-architecture/memory-hierarchy.jpg
+  :width: 800
 
 The memory hierarchy object includes:
 
@@ -72,6 +88,9 @@ Core
 
 The operational array and the memory hierarchy together form a core of the accelerator.
 
+.. image:: images/hardware-architecture/core.jpg
+  :width: 400
+
 The core object includes:
 
 * **id**: The id of this core.
@@ -82,7 +101,7 @@ The core object includes:
 HW Accelerator Model
 --------------------
 
-Multiple cores are combined together into the HW Accelerator, which is the main object modelling the HW behaviour.
+Multiple cores are combined together into the HW Accelerator, which is the main object modeling the HW behavior.
 
 The accelerator object includes:
 
